@@ -50,7 +50,7 @@
 #include <stdint.h>
 #include "m_fixed.h"
 
-#define FINEANGLES              8192
+#define FINEANGLES              3076//8192
 #define FINEMASK                (FINEANGLES-1)
 
 // 0x100000000 to 0x2000

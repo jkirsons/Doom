@@ -4,10 +4,16 @@
         "PLATFORMIO_CALLER": "vscode"
     },
     "files.associations": {
-        "doomdef.h": "c"
+        "doomdef.h": "c",
+        "esp_attr.h": "c",
+        "io_mux_reg.h": "c",
+        "soc.h": "c",
+        "freertos.h": "c",
+        "freertosconfig.h": "c",
+        "sdkconfig.h": "c"
     },
     "terminal.integrated.env.osx": {
-        "PATH": "/Users/jason/.platformio/penv/bin:/Users/jason/.platformio/penv:/Users/jason/.platformio/penv/bin:/Users/jason/.platformio/penv:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/usr/local/share/dotnet:/opt/X11/bin:/Library/Frameworks/Mono.framework/Versions/Current/Commands:/Applications/Xamarin Workbooks.app/Contents/SharedSupport/path-bin",
+        "PATH": "/Users/jason/.platformio/penv/bin:/Users/jason/.platformio/penv:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/usr/local/share/dotnet:/opt/X11/bin:/Library/Frameworks/Mono.framework/Versions/Current/Commands:/Applications/Xamarin Workbooks.app/Contents/SharedSupport/path-bin",
         "PLATFORMIO_CALLER": "vscode"
     }
 }
