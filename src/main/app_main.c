@@ -25,7 +25,7 @@
 #include "soc/efuse_reg.h"
 #include "soc/rtc_cntl_reg.h"
 #include <stdio.h>
-#include "freertos/FreeRTOS.h"1
+#include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include <stdlib.h>
 #include "esp_err.h"
