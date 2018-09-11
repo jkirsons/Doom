@@ -158,7 +158,7 @@ void ili_init(spi_device_handle_t spi)
     //Initialize non-SPI GPIOs
     gpio_set_direction(PIN_NUM_DC, GPIO_MODE_OUTPUT);
     gpio_set_direction(PIN_NUM_RST, GPIO_MODE_OUTPUT);
-    gpio_set_direction(PIN_NUM_BCKL, GPIO_MODE_OUTPUT);
+    //gpio_set_direction(PIN_NUM_BCKL, GPIO_MODE_OUTPUT);
 
     //Reset the display
     gpio_set_level(PIN_NUM_RST, 0);
@@ -181,9 +181,9 @@ void ili_init(spi_device_handle_t spi)
 
     ///Enable backlight
 #if CONFIG_HW_INV_BL
-    gpio_set_level(PIN_NUM_BCKL, 0);
+    //gpio_set_level(PIN_NUM_BCKL, 0);
 #else
-    gpio_set_level(PIN_NUM_BCKL, 1);
+    //gpio_set_level(PIN_NUM_BCKL, 1);
 #endif
 
 }
@@ -292,10 +292,10 @@ void IRAM_ATTR displayTask(void *arg) {
 	printf("*** Display task starting.\n");
 
     //Initialize the SPI bus
-    ret=spi_bus_initialize(HSPI_HOST, &buscfg, 1);
+    ret=spi_bus_initialize(VSPI_HOST, &buscfg, 2);
     assert(ret==ESP_OK);
     //Attach the LCD to the SPI bus
-    ret=spi_bus_add_device(HSPI_HOST, &devcfg, &spi);
+    ret=spi_bus_add_device(VSPI_HOST, &devcfg, &spi);
     assert(ret==ESP_OK);
     //Initialize the LCD
     ili_init(spi);

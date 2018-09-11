@@ -16,7 +16,7 @@
 
 #include "rom/cache.h"
 #include "rom/ets_sys.h"
-#include "rom/spi_flash.h"
+//#include "rom/spi_flash.h"
 #include "rom/crc.h"
 
 #include "soc/soc.h"
@@ -29,8 +29,8 @@
 #include "freertos/task.h"
 #include <stdlib.h>
 #include "esp_err.h"
-#include "nvs_flash.h"
-#include "esp_partition.h"
+//#include "nvs_flash.h"
+//#include "esp_partition.h"
 
 #undef false
 #undef true
@@ -50,14 +50,6 @@ void doomEngineTask(void *pvParameters)
 
 void app_main()
 {
-	int i;
-	const esp_partition_t* part;
-	spi_flash_mmap_handle_t hdoomwad;
-	esp_err_t err;
-
-	part=esp_partition_find_first(66, 6, NULL);
-	if (part==0) printf("Couldn't find wad part!\n");
-
 	spi_lcd_init();
 	jsInit();
 	xTaskCreatePinnedToCore(&doomEngineTask, "doomEngine", 22480, NULL, 5, NULL, 0);

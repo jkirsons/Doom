@@ -75,6 +75,17 @@
 #include "esp_partition.h"
 #include "esp_spi_flash.h"
 
+#include <stdio.h>
+#include <string.h>
+#include <sys/unistd.h>
+#include <sys/stat.h>
+#include "esp_err.h"
+#include "esp_log.h"
+#include "esp_vfs_fat.h"
+#include "driver/sdmmc_host.h"
+#include "driver/sdspi_host.h"
+#include "sdmmc_cmd.h"
+
 #ifdef __GNUG__
 #pragma implementation "i_system.h"
 #endif
@@ -82,8 +93,12 @@
 
 #include <sys/time.h>
 
-int realtime=0;
+#define PIN_NUM_MISO 4
+#define PIN_NUM_MOSI 13
+#define PIN_NUM_CLK  14
+#define PIN_NUM_CS   15
 
+int realtime=0;
 
 void I_uSleep(unsigned long usecs)
 {
@@ -169,7 +184,8 @@ const char* I_SigString(char* buf, size_t sz, int signum)
 extern unsigned char *doom1waddata;
 
 typedef struct {
-	const esp_partition_t* part;
+	//const esp_partition_t* part;
+	FILE* file;
 	int offset;
 	int size;
 } FileDesc;
@@ -177,12 +193,46 @@ typedef struct {
 static FileDesc fds[32];
 
 int I_Open(const char *wad, int flags) {
-	int x=3;
-	while (fds[x].part!=NULL) x++;
+	sdmmc_host_t host = SDSPI_HOST_DEFAULT();
+    sdspi_slot_config_t slot_config = SDSPI_SLOT_CONFIG_DEFAULT();
+    slot_config.gpio_miso = PIN_NUM_MISO;
+    slot_config.gpio_mosi = PIN_NUM_MOSI;
+    slot_config.gpio_sck  = PIN_NUM_CLK;
+    slot_config.gpio_cs   = PIN_NUM_CS;
+
+    esp_vfs_fat_sdmmc_mount_config_t mount_config = {
+        .format_if_mount_failed = false,
+        .max_files = 1
+    };
+
+	sdmmc_card_t* card;
+    esp_err_t ret = esp_vfs_fat_sdmmc_mount("/sdcard", &host, &slot_config, &mount_config, &card);
+
+    if (ret != ESP_OK) {
+        if (ret == ESP_FAIL) {
+            lprintf(LO_INFO, "Failed to mount filesystem. ");
+        } else {
+           lprintf(LO_INFO, "Failed to initialize the card. %d", ret);
+        }
+        return;
+    }
+	lprintf(LO_INFO, "SD card opened.");
+	sdmmc_card_print_info(stdout, card);
+	
+	int x=0;
+	while (fds[x].file!=NULL) x++;
 	if (strcmp(wad, "DOOM1.WAD")==0) {
-		fds[x].part=esp_partition_find_first(66, 6, NULL);
+		fds[x].file=fopen("/sdcard/doom1.wad", "rb");
 		fds[x].offset=0;
-		fds[x].size=fds[x].part->size;
+
+		//struct stat fileStat;
+		//stat("/sdcard/doom1.wad", &fileStat);
+		//fds[x].size = fileStat.st_size;
+
+		fseek(fds[x].file, 0L, SEEK_END);
+		fds[x].size=ftell(fds[x].file);
+		rewind(fds[x].file);
+		lprintf(LO_INFO, "Size: %d\n", fds[x].size);
 	} else {
 		lprintf(LO_INFO, "I_Open: open %s failed\n", wad);
 		return -1;
@@ -191,10 +241,13 @@ int I_Open(const char *wad, int flags) {
 }
 
 int I_Lseek(int ifd, off_t offset, int whence) {
+	lprintf(LO_INFO, "Seeking.");
 	if (whence==SEEK_SET) {
 		fds[ifd].offset=offset;
+		fseek(fds[ifd].file, offset, SEEK_SET);
 	} else if (whence==SEEK_CUR) {
 		fds[ifd].offset+=offset;
+		fseek(fds[ifd].file, offset, SEEK_CUR);
 	} else if (whence==SEEK_END) {
 		lprintf(LO_INFO, "I_Lseek: SEEK_END unimplemented\n");
 	}
@@ -207,10 +260,12 @@ int I_Filelength(int ifd)
 }
 
 void I_Close(int fd) {
-	fds[fd].part=NULL;
+	fds[fd].file=NULL;
+	fclose(fds[fd].file);
+	esp_vfs_fat_sdmmc_unmount();
 }
 
-
+/*
 typedef struct {
 	spi_flash_mmap_handle_t handle;
 	void *addr;
@@ -223,7 +278,9 @@ typedef struct {
 static MmapHandle mmapHandle[NO_MMAP_HANDLES];
 
 static int nextHandle=0;
+
 static int getFreeHandle() {
+	lprintf(LO_INFO, "Get free handle.");
 	int n=NO_MMAP_HANDLES;
 	while (mmapHandle[nextHandle].used!=0 && n!=0) {
 		nextHandle++;
@@ -248,6 +305,7 @@ static int getFreeHandle() {
 }
 
 static void freeUnusedMmaps() {
+	lprintf(LO_INFO, "freeUnusedMmaps.");
 	for (int i=0; i<NO_MMAP_HANDLES; i++) {
 		//Check if handle is not in use but is mapped.
 		if (mmapHandle[i].used==0 && mmapHandle[i].addr!=NULL) {
@@ -257,12 +315,15 @@ static void freeUnusedMmaps() {
 		}
 	}
 }
+*/
 
 void *I_Mmap(void *addr, size_t length, int prot, int flags, int ifd, off_t offset) {
+	lprintf(LO_INFO, "I_Mmap.");
+	
 	int i;
 	esp_err_t err;
 	void *retaddr=NULL;
-
+/*
 	for (i=0; i<NO_MMAP_HANDLES; i++) {
 		if (mmapHandle[i].offset==offset && mmapHandle[i].len==length) {
 			mmapHandle[i].used++;
@@ -288,13 +349,14 @@ void *I_Mmap(void *addr, size_t length, int prot, int flags, int ifd, off_t offs
 		lprintf(LO_ERROR, "I_Mmap: Can't mmap: %x (len=%d)!", err, length);
 		return NULL;
 	}
+*/
 
 	return retaddr;
 }
 
 
 int I_Munmap(void *addr, size_t length) {
-	int i;
+/*	int i;
 	for (i=0; i<NO_MMAP_HANDLES; i++) {
 		if (mmapHandle[i].addr==addr && mmapHandle[i].len==length) break;
 	}
@@ -304,14 +366,18 @@ int I_Munmap(void *addr, size_t length) {
 	}
 //	lprintf(LO_INFO, "I_Mmap: freeing handle %d\n", i);
 	mmapHandle[i].used--;
+	*/
 	return 0;
 }
 
 void I_Read(int ifd, void* vbuf, size_t sz)
 {
+    fread(vbuf, sz, 1, fds[ifd].file);
+	/*
 	uint8_t *d=I_Mmap(NULL, sz, 0, 0, ifd, fds[ifd].offset);
 	memcpy(vbuf, d, sz);
 	I_Munmap(d, sz);
+	*/
 }
 
 const char *I_DoomExeDir(void)

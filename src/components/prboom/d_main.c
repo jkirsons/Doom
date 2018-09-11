@@ -625,6 +625,7 @@ static void CheckIWAD(const char *iwadname,GameMode_t *gmode,boolean *hassec)
 	{
 	fd=I_Open(iwadname, 0);
 	I_Read(fd, &header, sizeof(header));
+  lprintf(LO_INFO, "Header %s %ld %ld\n", header.identification, LONG(header.numlumps), LONG(header.infotableofs));
       // read IWAD header
       if (!strncmp(header.identification, "IWAD", 4))
       {
