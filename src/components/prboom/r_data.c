@@ -43,6 +43,7 @@
 #include "p_tick.h"
 #include "lprintf.h"  // jff 08/03/98 - declaration of lprintf
 #include "p_tick.h"
+#include "esp_heap_caps.h"
 
 //
 // Graphics.
@@ -142,7 +143,7 @@ static void R_InitTextures (void)
   names = W_CacheLumpNum(names_lump = W_GetNumForName("PNAMES"));
   nummappatches = LONG(*((const int *)names));
   name_p = names+4;
-  patchlookup = malloc(nummappatches*sizeof(*patchlookup));  // killough
+  patchlookup = heap_caps_malloc(nummappatches*sizeof(*patchlookup), MALLOC_CAP_SPIRAM);  // killough
 
   for (i=0 ; i<nummappatches ; i++)
     {
@@ -224,7 +225,7 @@ static void R_InitTextures (void)
       texture->height = SHORT(mtexture->height);
       texture->patchcount = SHORT(mtexture->patchcount);
 
-        /* Mattias Engdegård emailed me of the following explenation of
+        /* Mattias Engdegï¿½rd emailed me of the following explenation of
          * why memcpy doesnt work on some systems:
          * "I suppose it is the mad unaligned allocation
          * going on (and which gcc in some way manages to cope with
@@ -666,7 +667,7 @@ void R_PrecacheLevel(void)
 
   {
     size_t size = numflats > numsprites  ? numflats : numsprites;
-    hitlist = malloc((size_t)numtextures > size ? numtextures : size);
+    hitlist = heap_caps_malloc((size_t)numtextures > size ? numtextures : size, MALLOC_CAP_SPIRAM);
   }
 
   // Precache flats.

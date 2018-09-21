@@ -55,7 +55,7 @@
 #include "rom/ets_sys.h"
 #include "spi_lcd.h"
 
-#include "esp_heap_alloc_caps.h"
+#include "esp_heap_caps.h"
 
 int use_fullscreen=0;
 int use_doublebuffer=0;
@@ -164,7 +164,7 @@ void I_PreInitGraphics(void)
 {
 	lprintf(LO_INFO, "preinitgfx");
 #ifdef INTERNAL_MEM_FB
-	screenbuf=pvPortMallocCaps(320*240, MALLOC_CAP_INTERNAL|MALLOC_CAP_8BIT);
+	screenbuf=heap_caps_malloc(320*240, MALLOC_CAP_INTERNAL|MALLOC_CAP_8BIT);
 	assert(screenbuf);
 #endif
 }

@@ -182,17 +182,10 @@ const char* I_SigString(char* buf, size_t sz, int signum)
 }
 
 extern unsigned char *doom1waddata;
+static bool init_SD = false;
 
-typedef struct {
-	//const esp_partition_t* part;
-	FILE* file;
-	int offset;
-	int size;
-} FileDesc;
-
-static FileDesc fds[32];
-
-int I_Open(const char *wad, int flags) {
+void Init_SD()
+{
 	sdmmc_host_t host = SDSPI_HOST_DEFAULT();
     sdspi_slot_config_t slot_config = SDSPI_SLOT_CONFIG_DEFAULT();
     slot_config.gpio_miso = PIN_NUM_MISO;
@@ -218,13 +211,47 @@ int I_Open(const char *wad, int flags) {
     }
 	lprintf(LO_INFO, "SD card opened.");
 	sdmmc_card_print_info(stdout, card);
+	init_SD = true;
+}
+
+typedef struct {
+	//const esp_partition_t* part;
+	FILE* file;
+	int offset;
+	int size;
+	char name[12];
+} FileDesc;
+
+static FileDesc fds[32];
+
+int I_Open(const char *wad, int flags) {
+	lprintf(LO_INFO, "I_Open: Opening File: %s\n", wad);
+	
+	if(init_SD == false)
+		Init_SD();
 	
 	int x=0;
-	while (fds[x].file!=NULL) x++;
+	while (fds[x].file!=NULL && fds[x].name != wad && x < 32) 
+		x++;
+	lprintf(LO_INFO, "I_Open: Got handle: %d\n", x);
+
+	if(x == 31 && fds[x].file!=NULL)
+	{
+		lprintf(LO_INFO, "I_Open: Too many hanfdles open\n");
+		return -1;
+	}
+
+	if(strcmp(fds[x].name, wad) == 0)
+	{
+		lprintf(LO_INFO, "I_Open: File already open\n");
+		return x;
+	}
+
 	if (strcmp(wad, "DOOM1.WAD")==0) {
 		fds[x].file=fopen("/sdcard/doom1.wad", "rb");
 		fds[x].offset=0;
 
+		sprintf(fds[x].name,"%s",wad);
 		//struct stat fileStat;
 		//stat("/sdcard/doom1.wad", &fileStat);
 		//fds[x].size = fileStat.st_size;
@@ -241,7 +268,7 @@ int I_Open(const char *wad, int flags) {
 }
 
 int I_Lseek(int ifd, off_t offset, int whence) {
-	lprintf(LO_INFO, "Seeking.");
+	lprintf(LO_INFO, "Seeking %d.\n", (int)offset);
 	if (whence==SEEK_SET) {
 		fds[ifd].offset=offset;
 		fseek(fds[ifd].file, offset, SEEK_SET);
@@ -260,9 +287,11 @@ int I_Filelength(int ifd)
 }
 
 void I_Close(int fd) {
-	fds[fd].file=NULL;
+	lprintf(LO_INFO, "I_Open: Closing File: %s\n", fds[fd].name);
+	sprintf(fds[fd].name, " ");
 	fclose(fds[fd].file);
-	esp_vfs_fat_sdmmc_unmount();
+	fds[fd].file=NULL;
+	//esp_vfs_fat_sdmmc_unmount();
 }
 
 /*
@@ -372,7 +401,13 @@ int I_Munmap(void *addr, size_t length) {
 
 void I_Read(int ifd, void* vbuf, size_t sz)
 {
-    fread(vbuf, sz, 1, fds[ifd].file);
+	lprintf(LO_INFO, "Reading %d bytes\n", (int)sz);
+    int readBytes = fread(vbuf, 1, sz, fds[ifd].file);
+	if( readBytes != (int)sz)
+		lprintf(LO_INFO, "Error Reading %d bytes\n", (int)sz);
+	else
+		lprintf(LO_INFO, "Read OK\n");
+    	
 	/*
 	uint8_t *d=I_Mmap(NULL, sz, 0, 0, ifd, fds[ifd].offset);
 	memcpy(vbuf, d, sz);

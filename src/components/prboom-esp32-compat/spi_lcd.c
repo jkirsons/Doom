@@ -21,7 +21,7 @@
 #include "driver/spi_master.h"
 #include "soc/gpio_struct.h"
 #include "driver/gpio.h"
-#include "esp_heap_alloc_caps.h"
+#include "esp_heap_caps.h"
 
 #include "sdkconfig.h"
 
@@ -260,7 +260,7 @@ SemaphoreHandle_t dispSem = NULL;
 SemaphoreHandle_t dispDoneSem = NULL;
 
 #define NO_SIM_TRANS 5 //Amount of SPI transfers to queue in parallel
-#define MEM_PER_TRANS 1024*3 //in 16-bit words
+#define MEM_PER_TRANS 1024*1 //in 16-bit words
 
 extern int16_t lcdpal[256];
 
@@ -291,6 +291,8 @@ void IRAM_ATTR displayTask(void *arg) {
 
 	printf("*** Display task starting.\n");
 
+    heap_caps_print_heap_info(MALLOC_CAP_DMA);
+
     //Initialize the SPI bus
     ret=spi_bus_initialize(VSPI_HOST, &buscfg, 2);
     assert(ret==ESP_OK);
@@ -302,7 +304,8 @@ void IRAM_ATTR displayTask(void *arg) {
 
 	//We're going to do a fair few transfers in parallel. Set them all up.
 	for (x=0; x<NO_SIM_TRANS; x++) {
-		dmamem[x]=pvPortMallocCaps(MEM_PER_TRANS*2, MALLOC_CAP_DMA);
+		//dmamem[x]=pvPortMallocCaps(MEM_PER_TRANS*2, MALLOC_CAP_DMA);
+        dmamem[x]=heap_caps_malloc(MEM_PER_TRANS*2, MALLOC_CAP_DMA);
 		assert(dmamem[x]);
 		memset(&trans[x], 0, sizeof(spi_transaction_t));
 		trans[x].length=MEM_PER_TRANS*2;
@@ -388,7 +391,8 @@ void spi_lcd_init() {
     dispSem=xSemaphoreCreateBinary();
     dispDoneSem=xSemaphoreCreateBinary();
 #ifdef DOUBLE_BUFFER
-	currFbPtr=pvPortMallocCaps(320*240, MALLOC_CAP_32BIT);
+	//currFbPtr=pvPortMallocCaps(320*240, MALLOC_CAP_32BIT);
+    currFbPtr=heap_caps_malloc(320*240, MALLOC_CAP_32BIT);
 #endif
 #if CONFIG_FREERTOS_UNICORE
 	xTaskCreatePinnedToCore(&displayTask, "display", 6000, NULL, 6, NULL, 0);

@@ -41,6 +41,7 @@
 #include "am_map.h"
 #include "p_enemy.h"
 #include "lprintf.h"
+#include "esp_heap_caps.h"
 
 byte *save_p;
 
@@ -461,7 +462,7 @@ void P_UnArchiveThinkers (void)
       I_Error ("P_UnArchiveThinkers: Unknown tclass %i in savegame", *save_p);
 
     // first table entry special: 0 maps to NULL
-    *(mobj_p = malloc(size * sizeof *mobj_p)) = 0;   // table of pointers
+    *(mobj_p = heap_caps_malloc(size * sizeof *mobj_p, MALLOC_CAP_SPIRAM)) = 0;   // table of pointers
     save_p = sp;           // restore save pointer
   }
 

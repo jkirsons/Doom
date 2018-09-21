@@ -55,7 +55,7 @@
 #endif
 #include "w_wad.h"
 #include "lprintf.h"
-
+#include "esp_heap_caps.h"
 //
 // GLOBALS
 //
@@ -187,12 +187,12 @@ static void W_AddFile(wadfile_info_t *wadfile)
       header.numlumps = LONG(header.numlumps);
       header.infotableofs = LONG(header.infotableofs);
       length = header.numlumps*sizeof(filelump_t);
-      fileinfo2free = fileinfo = malloc(length);    // killough
+      fileinfo2free = fileinfo = (filelump_t *)heap_caps_malloc(length, MALLOC_CAP_SPIRAM);    // killough
       I_Lseek(wadfile->handle, header.infotableofs, SEEK_SET);
       I_Read(wadfile->handle, fileinfo, length);
       numlumps += header.numlumps;
     }
-
+    lprintf (LO_INFO, "Realloc %d lumps\n", numlumps);
     // Fill in lumpinfo
     lumpinfo = realloc(lumpinfo, numlumps*sizeof(lumpinfo_t));
 
@@ -209,7 +209,7 @@ static void W_AddFile(wadfile_info_t *wadfile)
 
 
       }
-
+    lprintf (LO_INFO, "Added WAD file\n");
     free(fileinfo2free);      // killough
 }
 
@@ -231,7 +231,7 @@ static int IsMarker(const char *marker, const char *name)
 static void W_CoalesceMarkedResource(const char *start_marker,
                                      const char *end_marker, int li_namespace)
 {
-  lumpinfo_t *marked = malloc(sizeof(lumpinfo_t) * numlumps);
+  lumpinfo_t *marked = heap_caps_malloc(sizeof(lumpinfo_t) * numlumps, MALLOC_CAP_SPIRAM);
   size_t i, num_marked = 0, num_unmarked = 0;
   int is_marked = 0, mark_end = 0;
   lumpinfo_t *lump = lumpinfo;
@@ -423,13 +423,14 @@ void W_Init(void)
   // killough 1/24/98: change interface to use M_START/M_END explicitly
   // killough 4/17/98: Add namespace tags to each entry
   // killough 4/4/98: add colormap markers
-
+  lprintf(LO_INFO, "W_Init: CoalesceMarkedResource\n");
   W_CoalesceMarkedResource("S_START", "S_END", ns_sprites);
   W_CoalesceMarkedResource("F_START", "F_END", ns_flats);
   W_CoalesceMarkedResource("C_START", "C_END", ns_colormaps);
   W_CoalesceMarkedResource("B_START", "B_END", ns_prboom);
 
   // killough 1/31/98: initialize lump hash table
+  lprintf(LO_INFO, "W_Init: HashLumps\n");
   W_HashLumps();
 
   /* cph 2001/07/07 - separated cache setup */
