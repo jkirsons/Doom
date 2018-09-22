@@ -203,13 +203,13 @@ void Init_SD()
 
     if (ret != ESP_OK) {
         if (ret == ESP_FAIL) {
-            lprintf(LO_INFO, "Failed to mount filesystem. ");
+            lprintf(LO_INFO, "Failed to mount filesystem.\n");
         } else {
-           lprintf(LO_INFO, "Failed to initialize the card. %d", ret);
+           lprintf(LO_INFO, "Failed to initialize the card. %d\n", ret);
         }
         return;
     }
-	lprintf(LO_INFO, "SD card opened.");
+	lprintf(LO_INFO, "SD card opened.\n");
 	sdmmc_card_print_info(stdout, card);
 	init_SD = true;
 }
@@ -294,9 +294,9 @@ void I_Close(int fd) {
 	//esp_vfs_fat_sdmmc_unmount();
 }
 
-/*
+
 typedef struct {
-	spi_flash_mmap_handle_t handle;
+//	spi_flash_mmap_handle_t handle;
 	void *addr;
 	int offset;
 	size_t len;
@@ -309,7 +309,7 @@ static MmapHandle mmapHandle[NO_MMAP_HANDLES];
 static int nextHandle=0;
 
 static int getFreeHandle() {
-	lprintf(LO_INFO, "Get free handle.");
+	lprintf(LO_INFO, "Get free handle.\n");
 	int n=NO_MMAP_HANDLES;
 	while (mmapHandle[nextHandle].used!=0 && n!=0) {
 		nextHandle++;
@@ -317,42 +317,44 @@ static int getFreeHandle() {
 		n--;
 	}
 	if (n==0) {
-		lprintf(LO_ERROR, "I_Mmap: More mmaps than NO_MMAP_HANDLES!");
+		lprintf(LO_ERROR, "I_Mmap: More mmaps than NO_MMAP_HANDLES!\n");
 		exit(0);
 	}
 	
 	if (mmapHandle[nextHandle].addr) {
-		spi_flash_munmap(mmapHandle[nextHandle].handle);
+		//spi_flash_munmap(mmapHandle[nextHandle].handle);
+		free(mmapHandle[nextHandle].addr);
 		mmapHandle[nextHandle].addr=NULL;
 //		printf("mmap: freeing handle %d\n", nextHandle);
 	}
 	int r=nextHandle;
 	nextHandle++;
 	if (nextHandle==NO_MMAP_HANDLES) nextHandle=0;
-
+	lprintf(LO_INFO, "Got free handle: %d\n", r);
 	return r;
 }
 
 static void freeUnusedMmaps() {
-	lprintf(LO_INFO, "freeUnusedMmaps.");
+	lprintf(LO_INFO, "freeUnusedMmaps.\n");
 	for (int i=0; i<NO_MMAP_HANDLES; i++) {
 		//Check if handle is not in use but is mapped.
 		if (mmapHandle[i].used==0 && mmapHandle[i].addr!=NULL) {
-			spi_flash_munmap(mmapHandle[i].handle);
+			//spi_flash_munmap(mmapHandle[i].handle);
+			free(mmapHandle[i].addr);
 			mmapHandle[i].addr=NULL;
 			printf("Freeing handle %d\n", i);
 		}
 	}
 }
-*/
+
 
 void *I_Mmap(void *addr, size_t length, int prot, int flags, int ifd, off_t offset) {
-	lprintf(LO_INFO, "I_Mmap.");
+	lprintf(LO_INFO, "I_Mmap: ifd %d, length: %d, offset: %d\n", ifd, (int)length, (int)offset);
 	
 	int i;
 	esp_err_t err;
 	void *retaddr=NULL;
-/*
+
 	for (i=0; i<NO_MMAP_HANDLES; i++) {
 		if (mmapHandle[i].offset==offset && mmapHandle[i].len==length) {
 			mmapHandle[i].used++;
@@ -363,39 +365,44 @@ void *I_Mmap(void *addr, size_t length, int prot, int flags, int ifd, off_t offs
 	i=getFreeHandle();
 
 	//lprintf(LO_INFO, "I_Mmap: mmaping offset %d size %d handle %d\n", (int)offset, (int)length, i);
+	/*
 	err=esp_partition_mmap(fds[ifd].part, offset, length, SPI_FLASH_MMAP_DATA, (const void**)&retaddr, &mmapHandle[i].handle);
 	if (err==ESP_ERR_NO_MEM) {
 		lprintf(LO_ERROR, "I_Mmap: No free address space. Cleaning up unused cached mmaps...\n");
 		freeUnusedMmaps();
 		err=esp_partition_mmap(fds[ifd].part, offset, length, SPI_FLASH_MMAP_DATA, (const void**)&retaddr, &mmapHandle[i].handle);
 	}
-	mmapHandle[i].addr=retaddr;
-	mmapHandle[i].len=length;
-	mmapHandle[i].used=1;
-	mmapHandle[i].offset=offset;
+	*/
 
-	if (err!=ESP_OK) {
-		lprintf(LO_ERROR, "I_Mmap: Can't mmap: %x (len=%d)!", err, length);
+	retaddr = malloc(length);
+	if(retaddr)
+	{
+		I_Lseek(ifd, offset, SEEK_SET);
+		I_Read(ifd, retaddr, length);
+		mmapHandle[i].addr=retaddr;
+		mmapHandle[i].len=length;
+		mmapHandle[i].used=1;
+		mmapHandle[i].offset=offset;
+	} else {
+		lprintf(LO_ERROR, "I_Mmap: Can't mmap: %x (len=%d)!\n", err, length);
 		return NULL;
 	}
-*/
 
 	return retaddr;
 }
 
 
 int I_Munmap(void *addr, size_t length) {
-/*	int i;
+	int i;
 	for (i=0; i<NO_MMAP_HANDLES; i++) {
 		if (mmapHandle[i].addr==addr && mmapHandle[i].len==length) break;
 	}
 	if (i==NO_MMAP_HANDLES) {
-		lprintf(LO_ERROR, "I_Mmap: Freeing non-mmapped address/len combo!");
+		lprintf(LO_ERROR, "I_Mmap: Freeing non-mmapped address/len combo!\n");
 		exit(0);
 	}
 //	lprintf(LO_INFO, "I_Mmap: freeing handle %d\n", i);
 	mmapHandle[i].used--;
-	*/
 	return 0;
 }
 

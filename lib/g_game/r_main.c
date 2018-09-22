@@ -94,7 +94,7 @@ angle_t clipangle;
 // flattening the arc to a flat projection plane.
 // There will be many angles mapped to the same X.
 
-int viewangletox[FINEANGLES/2];
+int *viewangletox;
 
 // The xtoviewangleangle[] table maps a screen pixel
 // to the lowest viewangle that maps back to x ranges
@@ -254,7 +254,7 @@ static void R_InitTextureMapping (void)
   //
   // Calc focallength
   //  so FIELDOFVIEW angles covers SCREENWIDTH.
-
+  viewangletox = malloc((FINEANGLES/2)*sizeof(int)) ;
   focallength = FixedDiv(centerxfrac, finetangent[FINEANGLES/4+FIELDOFVIEW/2]);
 
   for (i=0 ; i<FINEANGLES/2 ; i++)

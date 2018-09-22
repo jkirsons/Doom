@@ -82,6 +82,7 @@
 #include "d_deh.h"  // Ty 04/08/98 - Externalizations
 #include "lprintf.h"  // jff 08/03/98 - declaration of lprintf
 #include "am_map.h"
+#include "esp_heap_caps.h"
 
 void GetFirstMap(int *ep, int *map); // Ty 08/29/98 - add "-warp x" functionality
 static void D_PageDrawer(void);
@@ -625,7 +626,6 @@ static void CheckIWAD(const char *iwadname,GameMode_t *gmode,boolean *hassec)
 	{
 	fd=I_Open(iwadname, 0);
 	I_Read(fd, &header, sizeof(header));
-  lprintf(LO_INFO, "Header %s %ld %ld\n", header.identification, LONG(header.numlumps), LONG(header.infotableofs));
       // read IWAD header
       if (!strncmp(header.identification, "IWAD", 4))
       {
@@ -1409,7 +1409,6 @@ static void D_DoomMainSetup(void)
   //jff 9/3/98 use logical output routine
   lprintf(LO_INFO,"V_Init: allocate screens.\n");
   V_Init();
-
   // CPhipps - autoloading of wads
   // Designed to be general, instead of specific to boomlump.wad
   // Some people might find this useful

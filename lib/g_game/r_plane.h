@@ -46,8 +46,8 @@
 /* Visplane related. */
 extern int *lastopening; // dropoff overflow
 
-extern int floorclip[], ceilingclip[]; // dropoff overflow
-extern fixed_t yslope[], distscale[];
+extern int *floorclip, *ceilingclip; // dropoff overflow
+extern fixed_t *yslope, *distscale;
 
 void R_InitPlanes(void);
 void R_ClearPlanes(void);

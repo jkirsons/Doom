@@ -28,8 +28,8 @@
 #define HAVE_DECL_SYS_SIGLIST 0
 
 /* Define to 1 if you have the `getopt' function. */
-#undef HAVE_GETOPT
-#define HAVE_GETOPT 1
+//#undef HAVE_GETOPT
+//#define HAVE_GETOPT 1
 
 /* Define to 1 if you have the `inet_aton' function. */
 #define HAVE_INET_ATON 1

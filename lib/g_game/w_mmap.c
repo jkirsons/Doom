@@ -48,7 +48,6 @@
 #include "z_zone.h"
 #include "lprintf.h"
 #include "i_system.h"
-#include "esp_heap_caps.h"
 
 #define RANGECHECK
 
@@ -92,7 +91,7 @@ static void W_ReportLocks(void)
 void W_InitCache(void)
 {
   // set up caching
-  cachelump = heap_caps_calloc(numlumps, sizeof *cachelump, MALLOC_CAP_SPIRAM);
+  cachelump = calloc(numlumps, sizeof *cachelump);
   if (!cachelump)
     I_Error ("W_Init: Couldn't allocate lumpcache");
 

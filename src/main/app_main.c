@@ -32,8 +32,6 @@
 //#include "nvs_flash.h"
 //#include "esp_partition.h"
 
-#undef false
-#undef true
 #include "i_system.h"
 
 #include "spi_lcd.h"
@@ -52,5 +50,5 @@ void app_main()
 {
 	spi_lcd_init();
 	jsInit();
-	xTaskCreatePinnedToCore(&doomEngineTask, "doomEngine", 22480, NULL, 5, NULL, 0);
+	xTaskCreatePinnedToCore(&doomEngineTask, "doomEngine", 4096, NULL, 5, NULL, 0);
 }
