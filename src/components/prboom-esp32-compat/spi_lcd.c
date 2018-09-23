@@ -36,6 +36,7 @@
 #define PIN_NUM_BCKL 5
 #else
 #define PIN_NUM_MOSI CONFIG_HW_LCD_MOSI_GPIO
+#define PIN_NUM_MISO CONFIG_HW_LCD_MISO_GPIO
 #define PIN_NUM_CLK  CONFIG_HW_LCD_CLK_GPIO
 #define PIN_NUM_CS   CONFIG_HW_LCD_CS_GPIO
 #define PIN_NUM_DC   CONFIG_HW_LCD_DC_GPIO
@@ -56,7 +57,8 @@ typedef struct {
     uint8_t databytes; //No of data in data; bit 7 = delay after set; 0xFF = end of cmds.
 } ili_init_cmd_t;
 
-
+#undef CONFIG_HW_LCD_TYPE
+#define CONFIG_HW_LCD_TYPE 0
 #if (CONFIG_HW_LCD_TYPE == 1)
 
 static const ili_init_cmd_t ili_init_cmds[]={
@@ -260,7 +262,7 @@ SemaphoreHandle_t dispSem = NULL;
 SemaphoreHandle_t dispDoneSem = NULL;
 
 #define NO_SIM_TRANS 5 //Amount of SPI transfers to queue in parallel
-#define MEM_PER_TRANS 1024*1 //in 16-bit words
+#define MEM_PER_TRANS 320*6 //in 16-bit words
 
 extern int16_t lcdpal[256];
 
@@ -274,7 +276,7 @@ void IRAM_ATTR displayTask(void *arg) {
 
     esp_err_t ret;
     spi_bus_config_t buscfg={
-        .miso_io_num=-1,
+        .miso_io_num=PIN_NUM_MISO,
         .mosi_io_num=PIN_NUM_MOSI,
         .sclk_io_num=PIN_NUM_CLK,
         .quadwp_io_num=-1,
@@ -291,10 +293,10 @@ void IRAM_ATTR displayTask(void *arg) {
 
 	printf("*** Display task starting.\n");
 
-    heap_caps_print_heap_info(MALLOC_CAP_DMA);
+    //heap_caps_print_heap_info(MALLOC_CAP_DMA);
 
     //Initialize the SPI bus
-    ret=spi_bus_initialize(VSPI_HOST, &buscfg, 2);
+    ret=spi_bus_initialize(VSPI_HOST, &buscfg, 1);
     assert(ret==ESP_OK);
     //Attach the LCD to the SPI bus
     ret=spi_bus_add_device(VSPI_HOST, &devcfg, &spi);

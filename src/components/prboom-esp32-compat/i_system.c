@@ -187,12 +187,13 @@ static bool init_SD = false;
 void Init_SD()
 {
 	sdmmc_host_t host = SDSPI_HOST_DEFAULT();
-	host.command_timeout_ms=100;
+	host.command_timeout_ms=200;
     sdspi_slot_config_t slot_config = SDSPI_SLOT_CONFIG_DEFAULT();
     slot_config.gpio_miso = PIN_NUM_MISO;
     slot_config.gpio_mosi = PIN_NUM_MOSI;
     slot_config.gpio_sck  = PIN_NUM_CLK;
     slot_config.gpio_cs   = PIN_NUM_CS;
+	slot_config.dma_channel = 2;
 
     esp_vfs_fat_sdmmc_mount_config_t mount_config = {
         .format_if_mount_failed = false,
@@ -254,7 +255,7 @@ int I_Open(const char *wad, int flags) {
 	}
 
 	if (strcmp(fname, fileName)==0) {
-		fds[x].file=fopen("/sdcard/doom.wad", "rb");
+		fds[x].file=fopen("/sdcard/doom2.wad", "rb");
 	} else if(strcmp("prboom.WAD", fname)==0) {
 		fds[x].file=fopen("/sdcard/prboom.wad", "rb");
 	} 
@@ -419,12 +420,19 @@ int I_Munmap(void *addr, size_t length) {
 
 void I_Read(int ifd, void* vbuf, size_t sz)
 {
+	int readBytes = 0;
 	//lprintf(LO_INFO, "I_Read: Reading %d bytes... ", (int)sz);
-    int readBytes = fread(vbuf, 1, sz, fds[ifd].file);
-	if( readBytes != (int)sz)
+    for(int i = 0; i < 20; i++)
+	{
+		readBytes = fread(vbuf, 1, sz, fds[ifd].file);
+		if( readBytes == (int)sz)
+			return;
 		lprintf(LO_INFO, "Error Reading %d bytes\n", (int)sz);
+		vTaskDelay(100 / portTICK_RATE_MS);
+	}
 	//else
 	//	lprintf(LO_INFO, "Read OK\n");
+	I_Error("I_Read: Error Reading %d bytes after 20 tries", (int)sz);
 }
 
 const char *I_DoomExeDir(void)
