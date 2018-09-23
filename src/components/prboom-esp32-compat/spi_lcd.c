@@ -262,7 +262,7 @@ SemaphoreHandle_t dispSem = NULL;
 SemaphoreHandle_t dispDoneSem = NULL;
 
 #define NO_SIM_TRANS 5 //Amount of SPI transfers to queue in parallel
-#define MEM_PER_TRANS 320*6 //in 16-bit words
+#define MEM_PER_TRANS 320*4 //in 16-bit words
 
 extern int16_t lcdpal[256];
 
@@ -284,7 +284,7 @@ void IRAM_ATTR displayTask(void *arg) {
         .max_transfer_sz=(MEM_PER_TRANS*2)+16
     };
     spi_device_interface_config_t devcfg={
-        .clock_speed_hz=26000000,               //Clock out at 26 MHz. Yes, that's heavily overclocked.
+        .clock_speed_hz=40000000,               //Clock out at 26 MHz. Yes, that's heavily overclocked.
         .mode=0,                                //SPI mode 0
         .spics_io_num=PIN_NUM_CS,               //CS pin
         .queue_size=NO_SIM_TRANS,               //We want to be able to queue this many transfers

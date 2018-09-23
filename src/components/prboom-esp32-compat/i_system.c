@@ -255,7 +255,7 @@ int I_Open(const char *wad, int flags) {
 	}
 
 	if (strcmp(fname, fileName)==0) {
-		fds[x].file=fopen("/sdcard/doom2.wad", "rb");
+		fds[x].file=fopen("/sdcard/doom.wad", "rb");
 	} else if(strcmp("prboom.WAD", fname)==0) {
 		fds[x].file=fopen("/sdcard/prboom.wad", "rb");
 	} 

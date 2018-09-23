@@ -98,13 +98,13 @@ static fixed_t planeheight;
 // killough 2/8/98: make variables static
 
 static fixed_t basexscale, baseyscale;
-static fixed_t *cachedheight;
-static fixed_t *cacheddistance;
-static fixed_t *cachedxstep;
-static fixed_t *cachedystep;
+static fixed_t cachedheight[MAX_SCREENHEIGHT];
+static fixed_t cacheddistance[MAX_SCREENHEIGHT];
+static fixed_t cachedxstep[MAX_SCREENHEIGHT];
+static fixed_t cachedystep[MAX_SCREENHEIGHT];
 static fixed_t xoffs,yoffs;    // killough 2/28/98: flat offsets
 
-fixed_t *yslope, *distscale;
+fixed_t yslope[MAX_SCREENHEIGHT], distscale[MAX_SCREENWIDTH];
 
 //
 // R_InitPlanes
@@ -114,12 +114,12 @@ void R_InitPlanes (void)
 {
   floorclip = malloc(MAX_SCREENWIDTH * sizeof(int));
   ceilingclip = malloc(MAX_SCREENWIDTH * sizeof(int));
-  yslope = malloc(MAX_SCREENHEIGHT * sizeof(fixed_t));
-  distscale = malloc(MAX_SCREENWIDTH * sizeof(fixed_t));
-  cachedheight = malloc(MAX_SCREENHEIGHT * sizeof(fixed_t));
-  cacheddistance = malloc(MAX_SCREENHEIGHT * sizeof(fixed_t));
-  cachedxstep = malloc(MAX_SCREENHEIGHT * sizeof(fixed_t));
-  cachedystep = malloc(MAX_SCREENHEIGHT * sizeof(fixed_t));
+  //yslope = malloc(MAX_SCREENHEIGHT * sizeof(fixed_t));
+  //distscale = malloc(MAX_SCREENWIDTH * sizeof(fixed_t));
+  //cachedheight = malloc(MAX_SCREENHEIGHT * sizeof(fixed_t));
+  //cacheddistance = malloc(MAX_SCREENHEIGHT * sizeof(fixed_t));
+  //cachedxstep = malloc(MAX_SCREENHEIGHT * sizeof(fixed_t));
+  //cachedystep = malloc(MAX_SCREENHEIGHT * sizeof(fixed_t));
   spanstart = malloc(MAX_SCREENHEIGHT * sizeof(int));
 }
 
