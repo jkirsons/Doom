@@ -1348,7 +1348,7 @@ static void D_DoomMainSetup(void)
   }
 	//Hardcode music and sound disabled -- JD
     nomusicparm=true;
-    nosfxparm=true;
+    //nosfxparm=true;
   //jff end of sound/music command line parms
 
   // killough 3/2/98: allow -nodraw -noblit generally

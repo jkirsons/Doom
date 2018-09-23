@@ -71,6 +71,7 @@
 
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
+#include "driver/i2s.h"
 
 #include "esp_partition.h"
 #include "esp_spi_flash.h"
@@ -85,6 +86,7 @@
 #include "driver/sdmmc_host.h"
 #include "driver/sdspi_host.h"
 #include "sdmmc_cmd.h"
+#include "dma.h"
 
 #ifdef __GNUG__
 #pragma implementation "i_system.h"
@@ -193,7 +195,7 @@ void Init_SD()
     slot_config.gpio_mosi = PIN_NUM_MOSI;
     slot_config.gpio_sck  = PIN_NUM_CLK;
     slot_config.gpio_cs   = PIN_NUM_CS;
-	slot_config.dma_channel = 2;
+	slot_config.dma_channel = 2; //2
 
     esp_vfs_fat_sdmmc_mount_config_t mount_config = {
         .format_if_mount_failed = false,
@@ -255,7 +257,7 @@ int I_Open(const char *wad, int flags) {
 	}
 
 	if (strcmp(fname, fileName)==0) {
-		fds[x].file=fopen("/sdcard/doom2.wad", "rb");
+		fds[x].file=fopen("/sdcard/doom.wad", "rb");
 	} else if(strcmp("prboom.WAD", fname)==0) {
 		fds[x].file=fopen("/sdcard/prboom.wad", "rb");
 	} 
@@ -420,6 +422,7 @@ int I_Munmap(void *addr, size_t length) {
 
 void I_Read(int ifd, void* vbuf, size_t sz)
 {
+	//i2s_stop(I2S_NUM_0);
 	int readBytes = 0;
 	//lprintf(LO_INFO, "I_Read: Reading %d bytes... ", (int)sz);
     for(int i = 0; i < 20; i++)
@@ -433,6 +436,7 @@ void I_Read(int ifd, void* vbuf, size_t sz)
 	//else
 	//	lprintf(LO_INFO, "Read OK\n");
 	I_Error("I_Read: Error Reading %d bytes after 20 tries", (int)sz);
+	//i2s_start(I2S_NUM_0);
 }
 
 const char *I_DoomExeDir(void)
