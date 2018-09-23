@@ -47,7 +47,7 @@
 extern int *lastopening; // dropoff overflow
 
 extern int *floorclip, *ceilingclip; // dropoff overflow
-extern fixed_t *yslope, *distscale;
+extern fixed_t yslope[MAX_SCREENHEIGHT], distscale[MAX_SCREENWIDTH];
 
 void R_InitPlanes(void);
 void R_ClearPlanes(void);
