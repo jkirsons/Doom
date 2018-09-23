@@ -224,7 +224,7 @@ static void R_InitTextures (void)
       texture->height = SHORT(mtexture->height);
       texture->patchcount = SHORT(mtexture->patchcount);
 
-        /* Mattias Engdegård emailed me of the following explenation of
+        /* Mattias Engdegï¿½rd emailed me of the following explenation of
          * why memcpy doesnt work on some systems:
          * "I suppose it is the mad unaligned allocation
          * going on (and which gcc in some way manages to cope with
@@ -454,14 +454,16 @@ int tran_filter_pct = 66;       // filter percent
 void R_InitTranMap(int progress)
 {
   int lump = W_CheckNumForName("TRANMAP");
-
+  lprintf(LO_INFO, "R_InitTranMap: TRANMAP lump: %d\n", lump);
   // If a tranlucency filter map lump is present, use it
 
   if (lump != -1)  // Set a pointer to the translucency filter maps.
     main_tranmap = W_CacheLumpNum(lump);   // killough 4/11/98
   else if (W_CheckNumForName("PLAYPAL")!=-1) // can be called before WAD loaded
     {   // Compose a default transparent filter map based on PLAYPAL.
-      const byte *playpal = W_CacheLumpName("PLAYPAL");
+      lprintf(LO_INFO, "R_InitTranMap: PLAYPAL lump: %d\n", W_GetNumForName("PLAYPAL"));
+      byte *playpal = W_CacheLumpName("PLAYPAL");
+      lprintf(LO_INFO, "R_InitTranMap: PLAYPAL cache: %p\n", playpal);
       byte       *my_tranmap;
 
       char fname[PATH_MAX+1];
@@ -566,14 +568,16 @@ void R_InitTranMap(int progress)
 
 void R_InitData(void)
 {
-  lprintf(LO_INFO, "Textures ");
+  lprintf(LO_INFO, "R_InitData: Textures\n");
   R_InitTextures();
-  lprintf(LO_INFO, "Flats ");
+  lprintf(LO_INFO, "R_InitData: Flats\n");
   R_InitFlats();
-  lprintf(LO_INFO, "Sprites ");
+  lprintf(LO_INFO, "R_InitData: Sprites\n");
   R_InitSpriteLumps();
+  lprintf(LO_INFO, "R_InitData: Translucency\n");
   if (default_translucency)             // killough 3/1/98
     R_InitTranMap(1);                   // killough 2/21/98, 3/6/98
+  lprintf(LO_INFO, "R_InitData: Colourmaps\n");
   R_InitColormaps();                    // killough 3/20/98
 }
 

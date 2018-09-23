@@ -50,5 +50,5 @@ void app_main()
 {
 	spi_lcd_init();
 	jsInit();
-	xTaskCreatePinnedToCore(&doomEngineTask, "doomEngine", 4096, NULL, 5, NULL, 0);
+	xTaskCreatePinnedToCore(&doomEngineTask, "doomEngine", 16384, NULL, 5, NULL, 0);
 }

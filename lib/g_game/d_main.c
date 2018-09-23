@@ -577,6 +577,7 @@ void D_AddFile (const char *file, wad_source_t source)
   numwadfiles++;
   // proff: automatically try to add the gwa files
   // proff - moved from w_wad.c
+/*  
   gwa_filename=AddDefaultExtension(strcpy(malloc(strlen(file)+5), file), ".wad");
   if (strlen(gwa_filename)>4)
     if (!strcasecmp(gwa_filename+(strlen(gwa_filename)-4),".wad"))
@@ -589,6 +590,7 @@ void D_AddFile (const char *file, wad_source_t source)
       wadfiles[numwadfiles].src = source; // Ty 08/29/98
       numwadfiles++;
     }
+*/    
 }
 
 // killough 10/98: support -dehout filename
@@ -740,7 +742,7 @@ static void NormalizeSlashes(char *str)
 static char *FindIWADFile(void)
 {
   char  * iwad  = NULL;
-  char *hardcodedIWad="DOOM1.WAD";
+  char *hardcodedIWad="DOOM.WAD";
   iwad=malloc(strlen(hardcodedIWad)+1);
   strcpy(iwad, hardcodedIWad);
 #if 0
@@ -858,6 +860,7 @@ static void IdentifyVersion (void)
     if (gamemode == indetermined)
       //jff 9/3/98 use logical output routine
       lprintf(LO_WARN,"Unknown Game Version, may not work\n");
+    D_AddFile("prboom.wad",source_pre);//source_iwad);
     D_AddFile(iwad,source_iwad);
     free(iwad);
   }

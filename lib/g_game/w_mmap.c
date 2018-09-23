@@ -122,7 +122,8 @@ const void* W_CacheLumpNum(int lump)
   if ((unsigned)lump >= (unsigned)numlumps)
     I_Error ("W_CacheLumpNum: %i >= numlumps",lump);
 #endif
-	cachelump[lump].mmapadr=I_Mmap(NULL, W_LumpLength(lump), 0, 0, lumpinfo[lump].wadfile->handle, lumpinfo[lump].position);
+//  lprintf(LO_INFO, "W_CacheLumpNum: Lump length: %d, ifd: %d, offset: %d\n", W_LumpLength(lump), lumpinfo[lump].wadfile->handle, lumpinfo[lump].position);
+	cachelump[lump].mmapadr=I_Mmap(NULL, (size_t)W_LumpLength(lump), 0, 0, lumpinfo[lump].wadfile->handle, (off_t)lumpinfo[lump].position);
 	return (char*)cachelump[lump].mmapadr;
 }
 
