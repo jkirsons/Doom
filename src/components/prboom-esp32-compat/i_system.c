@@ -101,6 +101,7 @@
 #define PIN_NUM_CS   15
 
 int realtime=0;
+SemaphoreHandle_t dmaChannel2Sem;
 
 void I_uSleep(unsigned long usecs)
 {
@@ -188,6 +189,10 @@ static bool init_SD = false;
 
 void Init_SD()
 {
+	dmaChannel2Sem=xSemaphoreCreateBinary();
+	xSemaphoreGive(dmaChannel2Sem);
+	if(init_SD)
+		sdspi_host_deinit();
 	sdmmc_host_t host = SDSPI_HOST_DEFAULT();
 	host.command_timeout_ms=200;
     sdspi_slot_config_t slot_config = SDSPI_SLOT_CONFIG_DEFAULT();
@@ -420,23 +425,31 @@ int I_Munmap(void *addr, size_t length) {
 	return 0;
 }
 
+
+
 void I_Read(int ifd, void* vbuf, size_t sz)
 {
+	//xSemaphoreTake(dmaChannel2Sem, portMAX_DELAY);
 	//i2s_stop(I2S_NUM_0);
+	//vTaskDelay(20 / portTICK_RATE_MS);	
 	int readBytes = 0;
 	//lprintf(LO_INFO, "I_Read: Reading %d bytes... ", (int)sz);
     for(int i = 0; i < 20; i++)
 	{
 		readBytes = fread(vbuf, 1, sz, fds[ifd].file);
 		if( readBytes == (int)sz)
+		{
+			//xSemaphoreGive(dmaChannel2Sem);
 			return;
+		}	
 		lprintf(LO_INFO, "Error Reading %d bytes\n", (int)sz);
-		vTaskDelay(100 / portTICK_RATE_MS);
 	}
+
 	//else
 	//	lprintf(LO_INFO, "Read OK\n");
-	I_Error("I_Read: Error Reading %d bytes after 20 tries", (int)sz);
+	//I_Error("I_Read: Error Reading %d bytes after 20 tries", (int)sz);
 	//i2s_start(I2S_NUM_0);
+	//xSemaphoreGive(dmaChannel2Sem);
 }
 
 const char *I_DoomExeDir(void)

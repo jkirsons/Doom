@@ -262,11 +262,7 @@ SemaphoreHandle_t dispSem = NULL;
 SemaphoreHandle_t dispDoneSem = NULL;
 
 #define NO_SIM_TRANS 5 //Amount of SPI transfers to queue in parallel
-<<<<<<< HEAD
 #define MEM_PER_TRANS 320*2 //in 16-bit words
-=======
-#define MEM_PER_TRANS 320*4 //in 16-bit words
->>>>>>> 5e93366e34f994c6f8d5fd6159f1228f90a69729
 
 extern int16_t lcdpal[256];
 
