@@ -60,6 +60,7 @@
 #include "dma.h"
 
 //SemaphoreHandle_t dmaChannel2Sem = NULL;
+bool audioStarted = false;
 
 int snd_card = 0;
 int mus_card = 0;
@@ -448,65 +449,44 @@ void I_UpdateSound( void )
     //  that is 512 values for two channels.
     while (leftout != leftend)
     {
-	// Reset left/right value. 
-	dl = 0;
-	dr = 0;
+      // Reset left/right value. 
+      dl = 0;
+      dr = 0;
 
-	// Love thy L2 chache - made this a loop.
-	// Now more channels could be set at compile time
-	//  as well. Thus loop those  channels.
-	for ( chan = 0; chan < NUM_MIX_CHANNELS; chan++ )
-	{
-	    // Check channel, if active.
-	    if (channels[ chan ])
-	    {
-        // Get the raw data from the channel. 
-        sample = *channels[ chan ];
-        // Add left and right part
-        //  for this channel (sound)
-        //  to the current data.
-        // Adjust volume accordingly.
-        dl += sample;//(channelleftvol_lookup[ chan ]<<4/255)*sample;
-        dr += sample;//(channelrightvol_lookup[ chan ]<<4/255)*sample;
-        // Increment index ???
-        //channelstepremainder[ chan ] += channelstep[ chan ];
-        // MSB is next sample???
-        channels[ chan ] += 1;//channelstepremainder[ chan ] >> 16;
-        // Limit to LSB???
-        //channelstepremainder[ chan ] &= 65536-1;
+      // Love thy L2 chache - made this a loop.
+      // Now more channels could be set at compile time
+      //  as well. Thus loop those  channels.
+      for ( chan = 0; chan < NUM_MIX_CHANNELS; chan++ )
+      {
+          // Check channel, if active.
+          if (channels[ chan ])
+          {
+            // Get the raw data from the channel. 
+            sample = *channels[ chan ];
+            // Add left and right part
+            //  for this channel (sound)
+            //  to the current data.
+            // Adjust volume accordingly.
+            dl += ((int)sample << channelleftvol_lookup[ chan ])>>16;
+            //dr += (int)(((float)channelrightvol_lookup[ chan ]/(float)250)*(float)sample);
+            // Increment index ???
+            channels[ chan ] += 1;
 
-        // Check whether we are done.
-        if (channels[ chan ] >= channelsend[ chan ])
-            channels[ chan ] = 0;
-	    }
-	}
-	
-	// Clamp to range. Left hardware channel.
-	// Has been char instead of short.
-	// if (dl > 127) *leftout = 127;
-	// else if (dl < -128) *leftout = -128;
-	// else *leftout = dl;
+            // Check whether we are done.
+            if (channels[ chan ] >= channelsend[ chan ])
+                channels[ chan ] = 0;
+          }
+      }
+      
+      *leftout = dl;
+      *(leftout+1) = *leftout;    
 
-	if (dl > 0xff)
-	    *leftout = 0xff;
-	else if (dl < 0x00)
-	    *leftout = 0x00;
-	else
-	    *leftout = dl;
-  *(leftout+1) = *leftout;    
+      *rightout = dr;
+      *(rightout+1) = *rightout;
 
-	// Same for right hardware channel.
-	if (dr > 0xff)
-	    *rightout = 0xff;
-	else if (dr < 0x00)
-	    *rightout = 0x00;
-	else
-	    *rightout = dr;
-  *(rightout+1) = *rightout;
-
-	// Increment current pointers in mixbuffer.
-	leftout += step;
-	rightout += step;
+      // Increment current pointers in mixbuffer.
+      leftout += step;
+      rightout += step;
     }
 
 #ifdef SNDINTR
@@ -540,7 +520,7 @@ void IRAM_ATTR updateTask(void *arg)
   {
     //xSemaphoreTake(dmaChannel2Sem, portMAX_DELAY);
     I_UpdateSound();
-    i2s_write(I2S_NUM_0, mixbuffer, SAMPLECOUNT*SAMPLESIZE, &bytesWritten, 1000/portTICK_PERIOD_MS);
+    i2s_write(I2S_NUM_0, mixbuffer, SAMPLECOUNT*SAMPLESIZE, &bytesWritten, portMAX_DELAY);
     //xSemaphoreGive(dmaChannel2Sem);
   }
 }
@@ -587,6 +567,7 @@ void I_InitSound(void)
 */
     
   i2s_set_sample_rates(I2S_NUM_0, SAMPLERATE); //set sample rates
+  audioStarted = true;
 
   // Initialize external data (all sounds) at start, keep static.
   fprintf( stderr, "I_InitSound: ");
@@ -616,7 +597,7 @@ void I_InitSound(void)
   // Finished initialization.
   fprintf(stderr, "I_InitSound: sound module ready\n");
 
-  xTaskCreatePinnedToCore(&updateTask, "updateTask", 1000, NULL, 6, NULL, 1);
+  xTaskCreatePinnedToCore(&updateTask, "updateTask", 2000, NULL, 6, NULL, 1);
 }
 
 

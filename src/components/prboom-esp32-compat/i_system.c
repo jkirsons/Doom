@@ -194,13 +194,14 @@ void Init_SD()
 	if(init_SD)
 		sdspi_host_deinit();
 	sdmmc_host_t host = SDSPI_HOST_DEFAULT();
-	host.command_timeout_ms=200;
+	//host.command_timeout_ms=200;
+	//host.max_freq_khz=
     sdspi_slot_config_t slot_config = SDSPI_SLOT_CONFIG_DEFAULT();
     slot_config.gpio_miso = PIN_NUM_MISO;
     slot_config.gpio_mosi = PIN_NUM_MOSI;
     slot_config.gpio_sck  = PIN_NUM_CLK;
     slot_config.gpio_cs   = PIN_NUM_CS;
-	slot_config.dma_channel = 2; //2
+	slot_config.dma_channel = 1; //2
 
     esp_vfs_fat_sdmmc_mount_config_t mount_config = {
         .format_if_mount_failed = false,
@@ -219,7 +220,7 @@ void Init_SD()
         return;
     }
 	lprintf(LO_INFO, "Init_SD: SD card opened.\n");
-	sdmmc_card_print_info(stdout, card);
+	//sdmmc_card_print_info(stdout, card);
 	init_SD = true;
 }
 
@@ -429,8 +430,12 @@ int I_Munmap(void *addr, size_t length) {
 
 void I_Read(int ifd, void* vbuf, size_t sz)
 {
+	if(audioStarted)
+	{
+		i2s_zero_dma_buffer(I2S_NUM_0);
+		i2s_stop(I2S_NUM_0);
+	}
 	//xSemaphoreTake(dmaChannel2Sem, portMAX_DELAY);
-	//i2s_stop(I2S_NUM_0);
 	//vTaskDelay(20 / portTICK_RATE_MS);	
 	int readBytes = 0;
 	//lprintf(LO_INFO, "I_Read: Reading %d bytes... ", (int)sz);
@@ -440,15 +445,14 @@ void I_Read(int ifd, void* vbuf, size_t sz)
 		if( readBytes == (int)sz)
 		{
 			//xSemaphoreGive(dmaChannel2Sem);
+			if(audioStarted)
+				i2s_start(I2S_NUM_0);
 			return;
 		}	
 		lprintf(LO_INFO, "Error Reading %d bytes\n", (int)sz);
 	}
 
-	//else
-	//	lprintf(LO_INFO, "Read OK\n");
-	//I_Error("I_Read: Error Reading %d bytes after 20 tries", (int)sz);
-	//i2s_start(I2S_NUM_0);
+	I_Error("I_Read: Error Reading %d bytes after 20 tries", (int)sz);
 	//xSemaphoreGive(dmaChannel2Sem);
 }
 
