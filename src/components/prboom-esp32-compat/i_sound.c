@@ -65,6 +65,7 @@ bool audioStarted = false;
 int snd_card = 0;
 int mus_card = 0;
 int snd_samplerate = 0;
+
 int channelsOut = 1;
 
 // Needed for calling the actual sound output.
@@ -84,12 +85,7 @@ int 		lengths[NUMSFX];
 // Basically, samples from all active internal channels
 //  are modifed and added, and stored in the buffer
 //  that is submitted to the audio device.
-signed short	*mixbuffer;
-
-// The channel step amount...
-unsigned int	channelstep[NUM_MIX_CHANNELS];
-// ... and a 0.16 bit remainder of last step.
-unsigned int	channelstepremainder[NUM_MIX_CHANNELS];
+unsigned char	*mixbuffer;
 
 // The channel data pointers, start and end.
 unsigned char*	channels[NUM_MIX_CHANNELS];
@@ -111,12 +107,6 @@ int 		channelhandles[NUM_MIX_CHANNELS];
 // SFX id of the playing sound effect.
 // Used to catch duplicates (like chainsaw).
 int		channelids[NUM_MIX_CHANNELS];			
-
-// Pitch to stepping lookup, unused.
-int		*steptable;
-
-// Volume lookups.
-int		*vol_lookup;
 
 // Hardware left and right channel volume lookup.
 int		channelleftvol_lookup[NUM_MIX_CHANNELS];
@@ -168,27 +158,30 @@ void* getsfx(char* sfxname, int* len)
 
     // Pads the sound effect out to the mixing buffer size.
     // The original realloc would interfere with zone memory.
-    paddedsize = ((size-8 + (SAMPLECOUNT-1)) / SAMPLECOUNT) * SAMPLECOUNT;
+    //paddedsize = ((size-8 + (SAMPLECOUNT-1)) / SAMPLECOUNT) * SAMPLECOUNT;
 
     // Allocate from zone memory.
-    paddedsfx = (unsigned char*)Z_Malloc( paddedsize+8, PU_STATIC, 0 );
+    //paddedsfx = (unsigned char*)Z_Malloc( paddedsize+8, PU_STATIC, 0 );
     // ddt: (unsigned char *) realloc(sfx, paddedsize+8);
     // This should interfere with zone memory handling,
     //  which does not kick in in the soundserver.
 
     // Now copy and pad.
-    memcpy(  paddedsfx, sfx, size );
-    for (i=size ; i<paddedsize+8 ; i++)
-        paddedsfx[i] = 128;
+    //memcpy(  paddedsfx, sfx, size );
+    //for (i=size ; i<paddedsize+8 ; i++)
+    //    paddedsfx[i] = 128;
 
     // Remove the cached lump.
     //Z_Free( sfx );
+    //W_UnlockLumpNum( sfxlump );
 
     // Preserve padded length.
-    *len = paddedsize;
+    //*len = paddedsize;
+    *len = size;
+    return (void *) (sfx);
 
     // Return allocated padded data.
-    return (void *) (paddedsfx + 8);
+    //return (void *) (paddedsfx + 8);
 }
 
 
@@ -270,11 +263,6 @@ int addsfx(int	sfxid, int volume, int step, int seperation)
     // Preserved so sounds could be stopped (unused).
     channelhandles[slot] = rc = handlenums++;
 
-    // Set stepping???
-    // Kinda getting the impression this is never used.
-    channelstep[slot] = step;
-    // ???
-    channelstepremainder[slot] = 0;
     // Should be gametic, I presume.
     channelstart[slot] = gametic;
 
@@ -333,29 +321,7 @@ void I_SetChannels()
   // Init internal lookups (raw data, mixing buffer, channels).
   // This function sets up internal lookups used during
   //  the mixing process. 
-  int		i;
-  int		j;
-    
-  int*	steptablemid = steptable + 128;
   
-  // Okay, reset internal mixing channels to zero.
-  /*for (i=0; i<NUM_MIX_CHANNELS; i++)
-  {
-    channels[i] = 0;
-  }*/
-
-  // This table provides step widths for pitch parameters.
-  // I fail to see that this is currently used.
-  for (i=-128 ; i<128 ; i++)
-    steptablemid[i] = (int)(pow(2.0, (i/64.0))*65536.0);
-  
-  
-  // Generates volume lookup tables
-  //  which also turn the unsigned samples
-  //  into signed samples.
-  for (i=0 ; i<128 ; i++)
-    for (j=0 ; j<256 ; j++)
-      vol_lookup[i*256+j] = (i*(j-128)*256)/127;
 }	
 
 // Retrieve the raw data lump index
@@ -373,7 +339,7 @@ int I_StartSound(int id, int channel, int vol, int sep, int pitch, int priority)
   //fprintf( stderr, "starting sound %d", id );
   
   // Returns a handle (not used).
-  id = addsfx( id, vol, steptable[pitch], sep );
+  id = addsfx( id, vol, 0, sep );
 
   // fprintf( stderr, "/handle is %d\n", id );
   
@@ -410,14 +376,8 @@ int I_AnySoundStillPlaying(void)
 //
 // This function currently supports only 16bit.
 //
-void I_UpdateSound( void )
+void IRAM_ATTR I_UpdateSound( void )
 {
-#ifdef SNDINTR
-  // Debug. Count buffer misses with interrupt.
-  static int misses = 0;
-#endif
-
-  
   // Mix current sound data.
   // Data, from raw sound, for right and left.
   unsigned char	sample;
@@ -427,7 +387,6 @@ void I_UpdateSound( void )
   // Pointers in global mixbuffer, left, right, end.
   unsigned char*		leftout;
   unsigned char*		rightout;
-  unsigned char*		leftend;
   // Step in mixbuffer, left and right, thus two.
   int				step;
 
@@ -440,14 +399,10 @@ void I_UpdateSound( void )
     rightout = mixbuffer+SAMPLECOUNT*SAMPLESIZE;
     step = 2;
 
-    // Determine end, for left channel only
-    //  (right channel is implicit).
-    leftend = mixbuffer + SAMPLECOUNT;
-
     // Mix sounds into the mixing buffer.
     // Loop over step*SAMPLECOUNT,
     //  that is 512 values for two channels.
-    while (leftout != leftend)
+    while (leftout < (mixbuffer+SAMPLECOUNT*SAMPLESIZE))
     {
       // Reset left/right value. 
       dl = 0;
@@ -467,7 +422,7 @@ void I_UpdateSound( void )
             //  for this channel (sound)
             //  to the current data.
             // Adjust volume accordingly.
-            dl += ((int)sample << channelleftvol_lookup[ chan ])>>16;
+            dl += sample >> 4; //<< channelleftvol_lookup[ chan ])>>16;
             //dr += (int)(((float)channelrightvol_lookup[ chan ]/(float)250)*(float)sample);
             // Increment index ???
             channels[ chan ] += 1;
@@ -488,24 +443,6 @@ void I_UpdateSound( void )
       leftout += step;
       rightout += step;
     }
-
-#ifdef SNDINTR
-    // Debug check.
-    if ( flag )
-    {
-      misses += flag;
-      flag = 0;
-    }
-    
-    if ( misses > 10 )
-    {
-      fprintf( stderr, "I_SoundUpdate: missed 10 buffer writes\n");
-      misses = 0;
-    }
-    
-    // Increment flag for update.
-    flag++;
-#endif
 }
 
 void I_ShutdownSound(void)
@@ -527,9 +464,9 @@ void IRAM_ATTR updateTask(void *arg)
 
 void I_InitSound(void)
 {
-  mixbuffer = malloc(MIXBUFFERSIZE*sizeof(signed short));
-  vol_lookup = malloc((128*256)*sizeof(int));
-  steptable = malloc(256*sizeof(int));
+  heap_caps_check_integrity_all(true);
+  mixbuffer = malloc(MIXBUFFERSIZE*sizeof(unsigned char));
+
   static const i2s_config_t i2s_config = {
     .mode = I2S_MODE_MASTER | I2S_MODE_TX | I2S_MODE_DAC_BUILT_IN,
     .sample_rate = SAMPLERATE,
@@ -568,9 +505,9 @@ void I_InitSound(void)
     
   i2s_set_sample_rates(I2S_NUM_0, SAMPLERATE); //set sample rates
   audioStarted = true;
-
+heap_caps_check_integrity_all(true);
   // Initialize external data (all sounds) at start, keep static.
-  fprintf( stderr, "I_InitSound: ");
+  lprintf( LO_INFO, "I_InitSound: ");
   
   for (int i=1 ; i<NUMSFX ; i++)
   { 
@@ -587,17 +524,18 @@ void I_InitSound(void)
       lengths[i] = lengths[(S_sfx[i].link - S_sfx)/sizeof(sfxinfo_t)];
     }
   }
-
-  fprintf( stderr, " pre-cached all sound data\n");
+heap_caps_check_integrity_all(true);
+  lprintf( LO_INFO, " pre-cached all sound data\n");
   
   // Now initialize mixbuffer with zero.
   for ( int i = 0; i< MIXBUFFERSIZE; i++ )
     mixbuffer[i] = 0;
   
   // Finished initialization.
-  fprintf(stderr, "I_InitSound: sound module ready\n");
-
+  lprintf(LO_INFO, "I_InitSound: sound module ready\n");
+heap_caps_check_integrity_all(true);
   xTaskCreatePinnedToCore(&updateTask, "updateTask", 2000, NULL, 6, NULL, 1);
+  
 }
 
 

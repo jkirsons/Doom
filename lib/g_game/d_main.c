@@ -1567,6 +1567,7 @@ static void D_DoomMainSetup(void)
   //jff 9/3/98 use logical output routine
   lprintf(LO_INFO,"I_Init: Setting up machine state.\n");
   I_Init();
+//heap_caps_print_heap_info(MALLOC_CAP_SPIRAM);
 
   //jff 9/3/98 use logical output routine
   lprintf(LO_INFO,"S_Init: Setting up sound.\n");

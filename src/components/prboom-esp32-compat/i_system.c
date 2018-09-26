@@ -430,13 +430,12 @@ int I_Munmap(void *addr, size_t length) {
 
 void I_Read(int ifd, void* vbuf, size_t sz)
 {
-	if(audioStarted)
-	{
-		i2s_zero_dma_buffer(I2S_NUM_0);
-		i2s_stop(I2S_NUM_0);
-	}
+	//if(audioStarted)
+	//{
+	//	i2s_zero_dma_buffer(I2S_NUM_0);
+	//	i2s_stop(I2S_NUM_0);
+	//}
 	//xSemaphoreTake(dmaChannel2Sem, portMAX_DELAY);
-	//vTaskDelay(20 / portTICK_RATE_MS);	
 	int readBytes = 0;
 	//lprintf(LO_INFO, "I_Read: Reading %d bytes... ", (int)sz);
     for(int i = 0; i < 20; i++)
@@ -445,11 +444,12 @@ void I_Read(int ifd, void* vbuf, size_t sz)
 		if( readBytes == (int)sz)
 		{
 			//xSemaphoreGive(dmaChannel2Sem);
-			if(audioStarted)
-				i2s_start(I2S_NUM_0);
+			//if(audioStarted)
+			//	i2s_start(I2S_NUM_0);
 			return;
 		}	
-		lprintf(LO_INFO, "Error Reading %d bytes\n", (int)sz);
+		//lprintf(LO_INFO, "Error Reading %d bytes\n", (int)sz);
+		//vTaskDelay(200 / portTICK_RATE_MS);
 	}
 
 	I_Error("I_Read: Error Reading %d bytes after 20 tries", (int)sz);
