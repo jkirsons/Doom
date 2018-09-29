@@ -102,15 +102,15 @@ int		channelstart[NUM_MIX_CHANNELS];
 //  determined on registration,
 //  might be used to unregister/stop/modify,
 //  currently unused.
-int 		channelhandles[NUM_MIX_CHANNELS];
+//int 		channelhandles[NUM_MIX_CHANNELS];
 
 // SFX id of the playing sound effect.
 // Used to catch duplicates (like chainsaw).
 int		channelids[NUM_MIX_CHANNELS];			
 
 // Hardware left and right channel volume lookup.
-int		channelleftvol_lookup[NUM_MIX_CHANNELS];
-int		channelrightvol_lookup[NUM_MIX_CHANNELS];
+//int		channelleftvol_lookup[NUM_MIX_CHANNELS];
+//int		channelrightvol_lookup[NUM_MIX_CHANNELS];
 
 //
 // This function loads the sound data from the WAD lump,
@@ -254,7 +254,7 @@ int addsfx(int	sfxid, int volume, int step, int seperation)
     channels[slot] = (unsigned char *) S_sfx[sfxid].data;
     // Set pointer to end of raw data.
     channelsend[slot] = channels[slot] + lengths[sfxid];
-
+/*
     // Reset current handle number, limited to 0..100.
     if (!handlenums)
 	    handlenums = 100;
@@ -288,7 +288,7 @@ int addsfx(int	sfxid, int volume, int step, int seperation)
     //  for this volume level???
     channelleftvol_lookup[slot] = leftvol;//&vol_lookup[leftvol*256];
     channelrightvol_lookup[slot] = rightvol;//&vol_lookup[rightvol*256];
-
+*/
     // Preserve sound SFX id,
     //  e.g. for avoiding duplicates of chainsaw.
     channelids[slot] = sfxid;
@@ -396,7 +396,7 @@ void IRAM_ATTR I_UpdateSound( void )
     // Left and right channel
     //  are in global mixbuffer, alternating.
     leftout = mixbuffer;
-    rightout = mixbuffer+SAMPLECOUNT*SAMPLESIZE;
+    rightout = mixbuffer+SAMPLECOUNT*SAMPLESIZE+1;
     step = 2;
 
     // Mix sounds into the mixing buffer.
@@ -434,14 +434,14 @@ void IRAM_ATTR I_UpdateSound( void )
       }
       
       *leftout = dl;
-      *(leftout+1) = *leftout;    
+      *(leftout+1) = dl;    
 
-      *rightout = dr;
-      *(rightout+1) = *rightout;
+      //*rightout = dr;
+      //*(rightout+1) = dr;
 
       // Increment current pointers in mixbuffer.
       leftout += step;
-      rightout += step;
+      //rightout += step;
     }
 }
 
@@ -464,11 +464,10 @@ void IRAM_ATTR updateTask(void *arg)
 
 void I_InitSound(void)
 {
-  heap_caps_check_integrity_all(true);
   mixbuffer = malloc(MIXBUFFERSIZE*sizeof(unsigned char));
 
   static const i2s_config_t i2s_config = {
-    .mode = I2S_MODE_MASTER | I2S_MODE_TX | I2S_MODE_DAC_BUILT_IN,
+    .mode = I2S_MODE_MASTER | I2S_MODE_TX | /*I2S_MODE_PDM,*/ I2S_MODE_DAC_BUILT_IN,
     .sample_rate = SAMPLERATE,
     .bits_per_sample = SAMPLESIZE*8, /* the DAC module will only take the 8bits from MSB */
     .channel_format = I2S_CHANNEL_FMT_ONLY_LEFT,
@@ -503,9 +502,9 @@ void I_InitSound(void)
       I2S built-in DAC mode max index    
 */
     
-  i2s_set_sample_rates(I2S_NUM_0, SAMPLERATE); //set sample rates
+  //i2s_set_sample_rates(I2S_NUM_0, SAMPLERATE); //set sample rates
   audioStarted = true;
-heap_caps_check_integrity_all(true);
+
   // Initialize external data (all sounds) at start, keep static.
   lprintf( LO_INFO, "I_InitSound: ");
   
@@ -524,7 +523,7 @@ heap_caps_check_integrity_all(true);
       lengths[i] = lengths[(S_sfx[i].link - S_sfx)/sizeof(sfxinfo_t)];
     }
   }
-heap_caps_check_integrity_all(true);
+
   lprintf( LO_INFO, " pre-cached all sound data\n");
   
   // Now initialize mixbuffer with zero.
@@ -533,8 +532,8 @@ heap_caps_check_integrity_all(true);
   
   // Finished initialization.
   lprintf(LO_INFO, "I_InitSound: sound module ready\n");
-heap_caps_check_integrity_all(true);
-  xTaskCreatePinnedToCore(&updateTask, "updateTask", 2000, NULL, 6, NULL, 1);
+
+  xTaskCreatePinnedToCore(&updateTask, "updateTask", 1000, NULL, 6, NULL, 1);
   
 }
 

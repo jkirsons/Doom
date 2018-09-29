@@ -24,13 +24,14 @@
 #include "gamepad.h"
 #include "lprintf.h"
 
-#include "psxcontroller.h"
+
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
-
+#include "freertos/queue.h"
+#include "driver/gpio.h"
 
 //The gamepad uses keyboard emulation, but for compilation, these variables need to be placed
-//somewhere. THis is as good a place as any.
+//somewhere. This is as good a place as any.
 int usejoystick=0;
 int joyleft, joyright, joyup, joydown;
 
@@ -39,19 +40,23 @@ int joyleft, joyright, joyup, joydown;
 volatile int joyVal=0;
 
 typedef struct {
-	int ps2mask;
+	int gpio;
 	int *key;
-} JsKeyMap;
+} GPIOKeyMap;
 
 //Mappings from PS2 buttons to keys
-static const JsKeyMap keymap[]={
-	{0x10, &key_up},
-	{0x40, &key_down},
-	{0x80, &key_left},
-	{0x20, &key_right},
+static const GPIOKeyMap keymap[]={
+	{36, &key_up},
+	{34, &key_down},
+	{32, &key_left},
+	{39, &key_right},
 	
-	{0x4000, &key_use},				//cross
-	{0x2000, &key_fire},			//circle
+	{33, &key_use},				//cross
+	{35, &key_fire},			//circle
+	{35, &key_menu_enter},
+	{0, NULL},
+};
+/*	
 	{0x2000, &key_menu_enter},		//circle
 	{0x8000, &key_pause},			//square
 	{0x1000, &key_weapontoggle},	//triangle
@@ -66,35 +71,38 @@ static const JsKeyMap keymap[]={
 
 	{0, NULL},
 };
-
+*/
 
 void gamepadPoll(void)
 {
-	static int oldPollJsVal=0xffff;
-	int newJoyVal=joyVal;
-	event_t ev;
+}
 
-	for (int i=0; keymap[i].key!=NULL; i++) {
-		if ((oldPollJsVal^newJoyVal)&keymap[i].ps2mask) {
-			ev.type=(newJoyVal&keymap[i].ps2mask)?ev_keyup:ev_keydown;
-			ev.data1=*keymap[i].key;
-			D_PostEvent(&ev);
-		}
-	}
+static xQueueHandle gpio_evt_queue = NULL;
 
-	oldPollJsVal=newJoyVal;
+static void IRAM_ATTR gpio_isr_handler(void* arg)
+{
+    uint32_t gpio_num = (uint32_t) arg;
+    xQueueSendFromISR(gpio_evt_queue, &gpio_num, NULL);
 }
 
 
-void jsTask(void *arg) {
-	int oldJoyVal=0xFFFF;
-	printf("Joystick task starting.\n");
-	while(1) {
-		vTaskDelay(20/portTICK_PERIOD_MS);
-		joyVal=psxReadInput();
-//		if (joyVal!=oldJoyVal) printf("Joy: %x\n", joyVal^0xffff);
-		oldJoyVal=joyVal;
-	}
+void gpioTask(void *arg) {
+    uint32_t io_num;
+	int level;
+	event_t ev;
+    for(;;) {
+        if(xQueueReceive(gpio_evt_queue, &io_num, portMAX_DELAY)) {
+			for (int i=0; keymap[i].key!=NULL; i++)
+				if(keymap[i].gpio == io_num)
+				{
+					level = gpio_get_level(io_num);
+					//lprintf(LO_INFO, "GPIO[%d] intr, val: %d\n", io_num, level);
+					ev.type=level?ev_keyup:ev_keydown;
+					ev.data1=*keymap[i].key;
+					D_PostEvent(&ev);
+				}
+        }
+    }
 }
 
 void gamepadInit(void)
@@ -102,9 +110,39 @@ void gamepadInit(void)
 	lprintf(LO_INFO, "gamepadInit: Initializing game pad.\n");
 }
 
-void jsInit() {
-	//Starts the js task
-	psxcontrollerInit();
-	xTaskCreatePinnedToCore(&jsTask, "js", 1000, NULL, 7, NULL, 0);
+void jsInit() 
+{
+	gpio_config_t io_conf;
+    //disable pull-down mode
+    io_conf.pull_down_en = 0;
+    //disable pull-up mode
+    io_conf.pull_up_en = 0;
+    //interrupt of rising edge
+    io_conf.intr_type = GPIO_INTR_ANYEDGE;
+    //bit mask of the pins, use GPIO... here
+	for (int i=0; keymap[i].key!=NULL; i++)
+    	if(i==0)
+			io_conf.pin_bit_mask = (1ULL<<keymap[i].gpio);
+		else 
+			io_conf.pin_bit_mask |= (1ULL<<keymap[i].gpio);
+    //set as input mode    
+    io_conf.mode = GPIO_MODE_INPUT;
+    //enable pull-up mode
+    io_conf.pull_up_en = 1;
+    gpio_config(&io_conf);
+
+
+    //create a queue to handle gpio event from isr
+    gpio_evt_queue = xQueueCreate(10, sizeof(uint32_t));
+    //start gpio task
+	xTaskCreatePinnedToCore(&gpioTask, "GPIO", 1000, NULL, 7, NULL, 0);
+
+    //install gpio isr service
+    gpio_install_isr_service(0);
+    //hook isr handler for specific gpio pin
+	for (int i=0; keymap[i].key!=NULL; i++)
+    	gpio_isr_handler_add(keymap[i].gpio, gpio_isr_handler, (void*) keymap[i].gpio);
+
+	lprintf(LO_INFO, "jsInit: GPIO task created.\n");
 }
 

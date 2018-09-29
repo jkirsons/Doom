@@ -157,7 +157,7 @@ void I_SetPalette (int pal)
 
 unsigned char *screenbuf;
 
-#define INTERNAL_MEM_FB
+//#define INTERNAL_MEM_FB
 
 
 void I_PreInitGraphics(void)

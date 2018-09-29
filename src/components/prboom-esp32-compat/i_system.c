@@ -95,7 +95,8 @@
 
 #include <sys/time.h>
 
-#define PIN_NUM_MISO 4
+#define MODE_SPI 0
+#define PIN_NUM_MISO 2 //4
 #define PIN_NUM_MOSI 13
 #define PIN_NUM_CLK  14
 #define PIN_NUM_CS   15
@@ -193,16 +194,23 @@ void Init_SD()
 	xSemaphoreGive(dmaChannel2Sem);
 	if(init_SD)
 		sdspi_host_deinit();
+#if MODE_SPI == 1	
 	sdmmc_host_t host = SDSPI_HOST_DEFAULT();
 	//host.command_timeout_ms=200;
-	//host.max_freq_khz=
+	//host.max_freq_khz = SDMMC_FREQ_PROBING;
     sdspi_slot_config_t slot_config = SDSPI_SLOT_CONFIG_DEFAULT();
     slot_config.gpio_miso = PIN_NUM_MISO;
     slot_config.gpio_mosi = PIN_NUM_MOSI;
     slot_config.gpio_sck  = PIN_NUM_CLK;
     slot_config.gpio_cs   = PIN_NUM_CS;
 	slot_config.dma_channel = 1; //2
-
+#else
+	sdmmc_host_t host = SDMMC_HOST_DEFAULT();
+	host.flags = SDMMC_HOST_FLAG_1BIT;
+	
+	sdmmc_slot_config_t slot_config = SDMMC_SLOT_CONFIG_DEFAULT();
+	slot_config.width = 1;
+#endif
     esp_vfs_fat_sdmmc_mount_config_t mount_config = {
         .format_if_mount_failed = false,
         .max_files = 2
@@ -448,6 +456,7 @@ void I_Read(int ifd, void* vbuf, size_t sz)
 			//	i2s_start(I2S_NUM_0);
 			return;
 		}	
+		vTaskDelay(300 / portTICK_RATE_MS);
 		//lprintf(LO_INFO, "Error Reading %d bytes\n", (int)sz);
 		//vTaskDelay(200 / portTICK_RATE_MS);
 	}
