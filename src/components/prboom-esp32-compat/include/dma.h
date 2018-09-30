@@ -5,6 +5,6 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/semphr.h"
 
-extern SemaphoreHandle_t dmaChannel2Sem;
+//extern SemaphoreHandle_t dmaChannel2Sem;
 extern bool audioStarted;
 #endif

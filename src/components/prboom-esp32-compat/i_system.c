@@ -102,7 +102,7 @@
 #define PIN_NUM_CS   15
 
 int realtime=0;
-SemaphoreHandle_t dmaChannel2Sem;
+//SemaphoreHandle_t dmaChannel2Sem;
 
 void I_uSleep(unsigned long usecs)
 {
@@ -190,10 +190,6 @@ static bool init_SD = false;
 
 void Init_SD()
 {
-	dmaChannel2Sem=xSemaphoreCreateBinary();
-	xSemaphoreGive(dmaChannel2Sem);
-	if(init_SD)
-		sdspi_host_deinit();
 #if MODE_SPI == 1	
 	sdmmc_host_t host = SDSPI_HOST_DEFAULT();
 	//host.command_timeout_ms=200;
@@ -207,7 +203,8 @@ void Init_SD()
 #else
 	sdmmc_host_t host = SDMMC_HOST_DEFAULT();
 	host.flags = SDMMC_HOST_FLAG_1BIT;
-	
+	//host.max_freq_khz = SDMMC_FREQ_HIGHSPEED;
+	host.command_timeout_ms=500;
 	sdmmc_slot_config_t slot_config = SDMMC_SLOT_CONFIG_DEFAULT();
 	slot_config.width = 1;
 #endif
@@ -363,7 +360,7 @@ static int getFreeHandle() {
 	return r;
 }
 
-static void freeUnusedMmaps() {
+void freeUnusedMmaps(void) {
 	lprintf(LO_INFO, "freeUnusedMmaps...\n");
 	for (int i=0; i<NO_MMAP_HANDLES; i++) {
 		//Check if handle is not in use but is mapped.
@@ -372,7 +369,7 @@ static void freeUnusedMmaps() {
 			free(mmapHandle[i].addr);
 			mmapHandle[i].addr=NULL;
 			mmapHandle[i].ifd=NULL;
-			printf("Freeing handle %d\n", i);
+			//printf("Freeing handle %d\n", i);
 		}
 	}
 }

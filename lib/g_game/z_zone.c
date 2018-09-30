@@ -56,6 +56,7 @@
 #include "g_game.h"
 #include "lprintf.h"
 #include "esp_heap_caps.h"
+#include "i_system.h"
 
 #ifdef DJGPP
 #include <dpmi.h>
@@ -405,6 +406,7 @@ void *(Z_Malloc)(size_t size, int tag, void **user
 #endif
       );
     Z_FreeTags(PU_CACHE,PU_CACHE);
+    freeUnusedMmaps();
   }
 
   if (!blockbytag[tag])
