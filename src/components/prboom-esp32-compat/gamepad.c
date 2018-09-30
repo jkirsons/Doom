@@ -82,7 +82,16 @@ static xQueueHandle gpio_evt_queue = NULL;
 static void IRAM_ATTR gpio_isr_handler(void* arg)
 {
     uint32_t gpio_num = (uint32_t) arg;
-    xQueueSendFromISR(gpio_evt_queue, &gpio_num, NULL);
+//    xQueueSendFromISR(gpio_evt_queue, &gpio_num, NULL);
+			event_t ev;
+			int level = gpio_get_level(gpio_num);
+			for (int i=0; keymap[i].key!=NULL; i++)
+				if(keymap[i].gpio == gpio_num)
+				{
+					ev.type=level?ev_keyup:ev_keydown;
+					ev.data1=*keymap[i].key;
+					D_PostEvent(&ev);
+				}
 }
 
 
@@ -133,9 +142,9 @@ void jsInit()
 
 
     //create a queue to handle gpio event from isr
-    gpio_evt_queue = xQueueCreate(10, sizeof(uint32_t));
+    //gpio_evt_queue = xQueueCreate(10, sizeof(uint32_t));
     //start gpio task
-	xTaskCreatePinnedToCore(&gpioTask, "GPIO", 1000, NULL, 7, NULL, 0);
+	//xTaskCreatePinnedToCore(&gpioTask, "GPIO", 1500, NULL, 7, NULL, 0);
 
     //install gpio isr service
     gpio_install_isr_service(0);

@@ -87,6 +87,7 @@
 #include "driver/sdspi_host.h"
 #include "sdmmc_cmd.h"
 #include "dma.h"
+#include "esp_timer.h"
 
 #ifdef __GNUG__
 #pragma implementation "i_system.h"
@@ -110,27 +111,21 @@ void I_uSleep(unsigned long usecs)
 }
 
 static unsigned long getMsTicks() {
-  struct timeval tv;
-  struct timezone tz;
+  //struct timeval tv;
+  //struct timezone tz;
   unsigned long thistimereply;
 
-  gettimeofday(&tv, &tz);
-
+  //gettimeofday(&tv, &tz);
+  unsigned long now = esp_timer_get_time() / 1000;
   //convert to ms
-  unsigned long now = tv.tv_usec/1000+tv.tv_sec*1000;
+  //unsigned long now = tv.tv_usec/1000+tv.tv_sec*1000;
   return now;
 }
 
 int I_GetTime_RealTime (void)
 {
-  struct timeval tv;
-  struct timezone tz;
   unsigned long thistimereply;
-
-  gettimeofday(&tv, &tz);
-
-  thistimereply = (tv.tv_sec * TICRATE + (tv.tv_usec * TICRATE) / 1000000);
-
+  thistimereply = ((esp_timer_get_time() * TICRATE) / 1000000);
   return thistimereply;
 
 }
@@ -420,7 +415,7 @@ void *I_Mmap(void *addr, size_t length, int prot, int flags, int ifd, off_t offs
 int I_Munmap(void *addr, size_t length) {
 	int i;
 	for (i=0; i<NO_MMAP_HANDLES; i++) {
-		if (mmapHandle[i].addr==addr && mmapHandle[i].len==length) break;
+		if (mmapHandle[i].addr==addr && mmapHandle[i].len==length/* && mmapHandle[i].ifd==ifd*/) break;
 	}
 	if (i==NO_MMAP_HANDLES) {
 		lprintf(LO_ERROR, "I_Mmap: Freeing non-mmapped address/len combo!\n");
@@ -435,31 +430,20 @@ int I_Munmap(void *addr, size_t length) {
 
 void I_Read(int ifd, void* vbuf, size_t sz)
 {
-	//if(audioStarted)
-	//{
-	//	i2s_zero_dma_buffer(I2S_NUM_0);
-	//	i2s_stop(I2S_NUM_0);
-	//}
-	//xSemaphoreTake(dmaChannel2Sem, portMAX_DELAY);
 	int readBytes = 0;
 	//lprintf(LO_INFO, "I_Read: Reading %d bytes... ", (int)sz);
     for(int i = 0; i < 20; i++)
 	{
-		readBytes = fread(vbuf, 1, sz, fds[ifd].file);
-		if( readBytes == (int)sz)
+		readBytes = fread(vbuf, sz, 1, fds[ifd].file);
+		if( readBytes == 1)//(int)sz)
 		{
-			//xSemaphoreGive(dmaChannel2Sem);
-			//if(audioStarted)
-			//	i2s_start(I2S_NUM_0);
 			return;
 		}	
+		lprintf(LO_INFO, "Error Reading %d bytes\n", (int)sz);
 		vTaskDelay(300 / portTICK_RATE_MS);
-		//lprintf(LO_INFO, "Error Reading %d bytes\n", (int)sz);
-		//vTaskDelay(200 / portTICK_RATE_MS);
 	}
 
 	I_Error("I_Read: Error Reading %d bytes after 20 tries", (int)sz);
-	//xSemaphoreGive(dmaChannel2Sem);
 }
 
 const char *I_DoomExeDir(void)
